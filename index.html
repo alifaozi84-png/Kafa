@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kafa | كافة</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
 :root{
@@ -38,33 +37,13 @@ min-height:700px;
 background:#fff;
 padding:20px;
 border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.header h1{
+text-align:center;
 color:var(--primary);
-font-size:20px;
-display:flex;
-align-items:center;
-gap:8px;
+font-weight:bold;
 }
 
-.page{
-display:none;
-padding:20px;
-}
-
-.page.active{
-display:block;
-animation:fade .3s ease;
-}
-
-@keyframes fade{
-from{opacity:0;transform:translateY(10px);}
-to{opacity:1;transform:translateY(0);}
-}
+.page{display:none;padding:20px;}
+.page.active{display:block;}
 
 .btn{
 width:100%;
@@ -111,14 +90,6 @@ justify-content:space-around;
 padding:10px 0;
 border-top:1px solid #eee;
 }
-
-.footer button{
-background:none;
-border:none;
-color:var(--primary);
-font-size:14px;
-cursor:pointer;
-}
 </style>
 </head>
 
@@ -127,14 +98,14 @@ cursor:pointer;
 <div class="app">
 
 <div class="header">
-<h1><i class="fas fa-heart"></i> كافة</h1>
+كافة ❤️
 </div>
 
 <!-- الصفحة الرئيسية -->
 <div id="home" class="page active">
 
 <div class="card">
-<strong>128</strong> وجبة تم دعمها
+<strong id="mealCounter">0</strong> وجبة تم دعمها
 </div>
 
 <button class="btn" onclick="goTo('request')">طلب وجبة</button>
@@ -142,41 +113,29 @@ cursor:pointer;
 
 </div>
 
-<!-- صفحة طلب وجبة -->
+<!-- طلب -->
 <div id="request" class="page">
-
 <h3>طلب وجبة</h3>
 
-<label>عدد الوجبات (1 - 5)</label>
-<input type="number" min="1" max="5" id="mealCount" class="input">
+<input type="number" min="1" max="5" id="mealCount" class="input" placeholder="عدد الوجبات (1-5)">
 
 <button class="btn" onclick="createRequest()">إرسال الطلب</button>
-
 <div id="requestStatus"></div>
-
 </div>
 
-<!-- صفحة التبرع -->
+<!-- تبرع -->
 <div id="donate" class="page">
-
 <h3>الطلبات النشطة</h3>
-
 <div id="requestsList"></div>
-
 </div>
 
-<!-- صفحة الكود -->
+<!-- كود -->
 <div id="code" class="page">
-
 <h3>كود الاستلام</h3>
-
 <div id="generatedCode" class="code-box"></div>
-
 <button class="btn" onclick="goTo('home')">العودة للرئيسية</button>
-
 </div>
 
-<!-- تنقل سفلي -->
 <div class="footer">
 <button onclick="goTo('home')">الرئيسية</button>
 <button onclick="goTo('request')">طلب</button>
@@ -191,36 +150,29 @@ function goTo(page){
 document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
 document.getElementById(page).classList.add('active');
 if(page==="donate") loadRequests();
+if(page==="home") updateCounter();
 }
 
 function createRequest(){
-let count=document.getElementById("mealCount").value;
-
-if(count<1 || count>5){
-return;
-}
+let count=parseInt(document.getElementById("mealCount").value);
+if(!count || count<1 || count>5) return;
 
 let requests=JSON.parse(localStorage.getItem("kafa_requests")||"[]");
 
-let newRequest={
+requests.push({
 id:Date.now(),
 meals:count,
 funded:false
-};
+});
 
-requests.push(newRequest);
 localStorage.setItem("kafa_requests",JSON.stringify(requests));
-
-document.getElementById("requestStatus").innerHTML=
-"<div class='card'>تم إرسال طلبك بنجاح ❤️</div>";
-
+document.getElementById("requestStatus").innerHTML="<div class='card'>تم إرسال الطلب ❤️</div>";
 document.getElementById("mealCount").value="";
 }
 
 function loadRequests(){
 let container=document.getElementById("requestsList");
 container.innerHTML="";
-
 let requests=JSON.parse(localStorage.getItem("kafa_requests")||"[]");
 
 requests.filter(r=>!r.funded).forEach(r=>{
@@ -235,29 +187,38 @@ container.appendChild(div);
 }
 
 function fundRequest(id){
-
 let requests=JSON.parse(localStorage.getItem("kafa_requests")||"[]");
-
 let req=requests.find(r=>r.id===id);
+if(req.funded) return;
+
 req.funded=true;
-
 localStorage.setItem("kafa_requests",JSON.stringify(requests));
-
-generateCode(id);
-
+updateCounter();
+generateCode();
 }
 
-function generateCode(id){
+function updateCounter(){
+let requests=JSON.parse(localStorage.getItem("kafa_requests")||"[]");
+let total=0;
+requests.filter(r=>r.funded).forEach(r=> total+=parseInt(r.meals));
+document.getElementById("mealCounter").innerText=total;
+}
+
+function generateCode(){
+let expiry=Date.now()+2*60*60*1000;
 let code="KF-"+Math.random().toString(36).substr(2,6).toUpperCase();
-localStorage.setItem("kafa_code",code);
+
+localStorage.setItem("kafa_code",JSON.stringify({code,expiry}));
 
 document.getElementById("generatedCode").innerHTML=
-"<h2>"+code+"</h2><p>صالح لمدة 2 ساعة</p>";
+"<h2>"+code+"</h2><p>صالح لمدة ساعتين</p>";
 
 goTo("code");
 }
 
+updateCounter();
+
 </script>
 
 </body>
-  </html>
+</html>
